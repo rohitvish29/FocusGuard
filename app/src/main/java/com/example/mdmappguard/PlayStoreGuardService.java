@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService;
 import android.content.Intent;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.Toast;
 import java.util.List;
 
 public class PlayStoreGuardService extends AccessibilityService {
@@ -12,16 +13,15 @@ public class PlayStoreGuardService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        // अगर सेशन एक्टिव नहीं है तो कुछ प्रोसेस न करें (बैटरी और बैंकिंग सुरक्षा)
         if (!isSessionActive) return;
 
         AccessibilityNodeInfo rootNode = getRootInActiveWindow();
         if (rootNode == null) return;
 
-        // चेक करें कि क्या स्क्रीन पर WhatsApp का विवरण मौजूद है
+        // चेक करें कि स्क्रीन पर WhatsApp लिखा है या नहीं
         List<AccessibilityNodeInfo> nodes = rootNode.findAccessibilityNodeInfosByText("WhatsApp");
 
-        // अगर WhatsApp नहीं मिला तो यूजर ने Cross [X], Back या Search दबाया है
+        // अगर WhatsApp नहीं मिला (मतलब यूज़र ने Back, Cross या Search दबाया है)
         if (nodes == null || nodes.isEmpty()) {
             triggerLockdown();
         }
@@ -30,10 +30,10 @@ public class PlayStoreGuardService extends AccessibilityService {
     private void triggerLockdown() {
         isSessionActive = false;
 
-        // 1. Play Store को Hide करें (Delegated call)
-        MdmControl.hideApp(getApplicationContext(), MdmControl.PLAY_STORE);
+        // स्क्रीन पर मैसेज दिखाएं
+        Toast.makeText(getApplicationContext(), "❌ Play Store Locked: You exited WhatsApp!", Toast.LENGTH_LONG).show();
 
-        // 2. यूजर को वापस अपने ऐप पर ले आएं
+        // यूज़र को तुरंत वापस अपनी ऐप पर ले आएं
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         startActivity(intent);
