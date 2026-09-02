@@ -13,6 +13,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Button btnAction;
     private TextView tvStatus;
+    private TextView tvDelegation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,6 +22,11 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(60, 120, 60, 60);
+
+        tvDelegation = new TextView(this);
+        tvDelegation.setTextSize(14);
+        tvDelegation.setPadding(0, 0, 0, 30);
+        layout.addView(tvDelegation);
 
         tvStatus = new TextView(this);
         tvStatus.setTextSize(18);
@@ -50,24 +56,32 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateUI() {
-        if (isAppInstalled(MdmControl.WHATSAPP)) {
-            tvStatus.setText("Status: WhatsApp is INSTALLED");
-            btnAction.setText("Manage / Update / Uninstall WhatsApp");
+        // डेलिगेशन स्टेटस चेक
+        if (MdmControl.hasDelegation(this)) {
+            tvDelegation.setText("MDM Status: Delegation GRANTED (Active)");
+            tvDelegation.setTextColor(0xFF008800); // Green
         } else {
-            tvStatus.setText("Status: WhatsApp is NOT Installed");
+            tvDelegation.setText("MDM Status: Delegation NOT GRANTED!\n(Run: dpm set-delegated-scopes)");
+            tvDelegation.setTextColor(0xFFFF0000); // Red
+        }
+
+        if (isAppInstalled(MdmControl.WHATSAPP)) {
+            tvStatus.setText("App: WhatsApp is INSTALLED");
+            btnAction.setText("Manage / Uninstall WhatsApp");
+        } else {
+            tvStatus.setText("App: WhatsApp is NOT Installed");
             btnAction.setText("Install WhatsApp");
         }
     }
 
     private void launchProtectedPlayStore() {
-        // Enable guard service
-        MdmControl.enableAccessibility(this);
+        // सेशन एक्टिव करें
         PlayStoreGuardService.isSessionActive = true;
 
-        // Unhide Play Store
-        MdmControl.unhidePlayStore();
+        // Play Store को Delegated API से Unhide करें
+        MdmControl.unhidePlayStore(this);
 
-        // Launch market intent
+        // सीधे WhatsApp पेज पर ले जाएं
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setData(Uri.parse("market://details?id=" + MdmControl.WHATSAPP));
         startActivity(intent);
