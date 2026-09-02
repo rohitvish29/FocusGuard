@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.widget.Toast;
 
 public class PackageChangeReceiver extends BroadcastReceiver {
 
@@ -14,14 +15,22 @@ public class PackageChangeReceiver extends BroadcastReceiver {
         String packageName = data.getSchemeSpecificPart();
 
         if (MdmControl.WHATSAPP.equals(packageName)) {
-            // WhatsApp का एक्शन पूरा हुआ -> Play Store हाइड करें
+            // WhatsApp का इंस्टॉल या अनइंस्टॉल पूरा हुआ
             PlayStoreGuardService.isSessionActive = false;
-            MdmControl.hideApp(context, MdmControl.PLAY_STORE);
+            Toast.makeText(context, "✅ WhatsApp action completed!", Toast.LENGTH_LONG).show();
+            redirectToHome(context);
         } else if (!MdmControl.PLAY_STORE.equals(packageName)) {
-            // कोई अनाधिकृत ऐप इंस्टॉल हुई -> ऐप और Play Store दोनों हाइड करें
-            MdmControl.hideApp(context, packageName);
-            MdmControl.hideApp(context, MdmControl.PLAY_STORE);
+            // कोई दूसरी ऐप इंस्टॉल होने की कोशिश हुई
             PlayStoreGuardService.isSessionActive = false;
+            Toast.makeText(context, "❌ Unauthorized App Blocked!", Toast.LENGTH_LONG).show();
+            redirectToHome(context);
         }
+    }
+
+    // यूज़र को होम स्क्रीन (MainActivity) पर वापस भेजने का फंक्शन
+    private void redirectToHome(Context context) {
+        Intent i = new Intent(context, MainActivity.class);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        context.startActivity(i);
     }
 }
