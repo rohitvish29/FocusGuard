@@ -10,30 +10,39 @@ import java.util.List;
 public class PlayStoreGuardService extends AccessibilityService {
 
     public static boolean isSessionActive = false;
+    public static long sessionStartTime = 0; // नया टाइमर
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (!isSessionActive) return;
 
+        // Play Store को लोड होने के लिए 3.5 सेकंड का समय दें (Grace Period)
+        if (System.currentTimeMillis() - sessionStartTime < 3500) {
+            return;
+        }
+
         AccessibilityNodeInfo rootNode = getRootInActiveWindow();
         if (rootNode == null) return;
 
-        // चेक करें कि स्क्रीन पर WhatsApp लिखा है या नहीं
-        List<AccessibilityNodeInfo> nodes = rootNode.findAccessibilityNodeInfosByText("WhatsApp");
+        List<AccessibilityNodeInfo> whatsappNodes = rootNode.findAccessibilityNodeInfosByText("WhatsApp");
+        List<AccessibilityNodeInfo> pendingNodes = rootNode.findAccessibilityNodeInfosByText("Pending");
+        List<AccessibilityNodeInfo> installingNodes = rootNode.findAccessibilityNodeInfosByText("Installing");
+        List<AccessibilityNodeInfo> downloadingNodes = rootNode.findAccessibilityNodeInfosByText("Downloading");
 
-        // अगर WhatsApp नहीं मिला (मतलब यूज़र ने Back, Cross या Search दबाया है)
-        if (nodes == null || nodes.isEmpty()) {
+        boolean isDownloading = (pendingNodes != null && !pendingNodes.isEmpty()) || 
+                                (installingNodes != null && !installingNodes.isEmpty()) ||
+                                (downloadingNodes != null && !downloadingNodes.isEmpty());
+
+        // अगर 3.5 सेकंड बाद भी WhatsApp नहीं मिला और डाउनलोडिंग भी नहीं चल रही है, तो ऐप लॉक कर दें
+        if ((whatsappNodes == null || whatsappNodes.isEmpty()) && !isDownloading) {
             triggerLockdown();
         }
     }
 
     private void triggerLockdown() {
         isSessionActive = false;
-
-        // स्क्रीन पर मैसेज दिखाएं
-        Toast.makeText(getApplicationContext(), "❌ Play Store Locked: You exited WhatsApp!", Toast.LENGTH_LONG).show();
-
-        // यूज़र को तुरंत वापस अपनी ऐप पर ले आएं
+        Toast.makeText(getApplicationContext(), "❌ Play Store Locked: Exited WhatsApp!", Toast.LENGTH_LONG).show();
+        
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         startActivity(intent);
