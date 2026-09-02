@@ -12,15 +12,16 @@ public class PlayStoreGuardService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
+        // अगर सेशन एक्टिव नहीं है तो कुछ प्रोसेस न करें (बैटरी और बैंकिंग सुरक्षा)
         if (!isSessionActive) return;
 
         AccessibilityNodeInfo rootNode = getRootInActiveWindow();
         if (rootNode == null) return;
 
-        // Verify if WhatsApp text or package reference is present on screen
+        // चेक करें कि क्या स्क्रीन पर WhatsApp का विवरण मौजूद है
         List<AccessibilityNodeInfo> nodes = rootNode.findAccessibilityNodeInfosByText("WhatsApp");
 
-        // If WhatsApp is missing, user exited, searched, or tapped back/cross
+        // अगर WhatsApp नहीं मिला तो यूजर ने Cross [X], Back या Search दबाया है
         if (nodes == null || nodes.isEmpty()) {
             triggerLockdown();
         }
@@ -28,15 +29,11 @@ public class PlayStoreGuardService extends AccessibilityService {
 
     private void triggerLockdown() {
         isSessionActive = false;
-        
-        // 1. Force close and hide Play Store
-        MdmControl.hideApp(MdmControl.PLAY_STORE);
-        
-        // 2. Disable accessibility immediately (prevents banking app issues)
-        MdmControl.disableAccessibility();
-        disableSelf();
 
-        // 3. Return user to our kiosk launcher
+        // 1. Play Store को Hide करें (Delegated call)
+        MdmControl.hideApp(getApplicationContext(), MdmControl.PLAY_STORE);
+
+        // 2. यूजर को वापस अपने ऐप पर ले आएं
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         startActivity(intent);
