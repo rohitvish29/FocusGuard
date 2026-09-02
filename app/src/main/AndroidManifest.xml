@@ -21,6 +21,7 @@
             </intent-filter>
         </activity>
 
+        <!-- Accessibility Monitor Service -->
         <service
             android:name=".PlayStoreGuardService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
@@ -33,6 +34,7 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
+        <!-- Dynamic Broadcast Receiver for Installs -->
         <receiver
             android:name=".PackageChangeReceiver"
             android:exported="true">
@@ -43,5 +45,6 @@
                 <data android:scheme="package" />
             </intent-filter>
         </receiver>
+
     </application>
 </manifest>
