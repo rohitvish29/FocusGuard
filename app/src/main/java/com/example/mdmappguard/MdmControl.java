@@ -1,46 +1,46 @@
 package com.example.mdmappguard;
 
+import android.app.admin.DevicePolicyManager;
 import android.content.Context;
-import java.io.DataOutputStream;
+import java.util.List;
 
 public class MdmControl {
 
     public static final String PLAY_STORE = "com.android.vending";
     public static final String WHATSAPP = "com.whatsapp";
 
-    public static void runPrivileged(String cmd) {
+    // चेक करें कि ऐप के पास Package Access Delegation है या नहीं
+    public static boolean hasDelegation(Context context) {
+        DevicePolicyManager dpm = (DevicePolicyManager) context.getSystemService(Context.DEVICE_POLICY_SERVICE);
+        if (dpm != null) {
+            List<String> scopes = dpm.getDelegatedScopes(null, context.getPackageName());
+            return scopes.contains(DevicePolicyManager.DELEGATION_PACKAGE_ACCESS);
+        }
+        return false;
+    }
+
+    // App को Hide करना (Delegated API)
+    public static void hideApp(Context context, String packageName) {
         try {
-            Process process = Runtime.getRuntime().exec("su");
-            DataOutputStream os = new DataOutputStream(process.getOutputStream());
-            os.writeBytes(cmd + "\n");
-            os.writeBytes("exit\n");
-            os.flush();
-            process.waitFor();
-        } catch (Exception e) {
-            try {
-                Runtime.getRuntime().exec(new String[]{"sh", "-c", cmd});
-            } catch (Exception ignored) {}
+            DevicePolicyManager dpm = (DevicePolicyManager) context.getSystemService(Context.DEVICE_POLICY_SERVICE);
+            if (dpm != null) {
+                // Delegated ऐप होने की वजह से admin component 'null' पास होता है
+                dpm.setApplicationHidden(null, packageName, true);
+            }
+        } catch (SecurityException e) {
+            e.printStackTrace();
         }
     }
 
-    public static void hideApp(String packageName) {
-        runPrivileged("am force-stop " + packageName);
-        runPrivileged("pm uninstall -k --user 0 " + packageName);
-    }
-
-    public static void unhidePlayStore() {
-        runPrivileged("cmd package install-existing " + PLAY_STORE);
-        runPrivileged("pm enable " + PLAY_STORE);
-    }
-
-    public static void enableAccessibility(Context context) {
-        String service = context.getPackageName() + "/" + PlayStoreGuardService.class.getName();
-        runPrivileged("settings put secure enabled_accessibility_services " + service);
-        runPrivileged("settings put secure accessibility_enabled 1");
-    }
-
-    public static void disableAccessibility() {
-        runPrivileged("settings put secure enabled_accessibility_services \"\"");
-        runPrivileged("settings put secure accessibility_enabled 0");
+    // Play Store को Unhide करना (Delegated API)
+    public static void unhidePlayStore(Context context) {
+        try {
+            DevicePolicyManager dpm = (DevicePolicyManager) context.getSystemService(Context.DEVICE_POLICY_SERVICE);
+            if (dpm != null) {
+                dpm.setApplicationHidden(null, PLAY_STORE, false);
+            }
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        }
     }
 }
