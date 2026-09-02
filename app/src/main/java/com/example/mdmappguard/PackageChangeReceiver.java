@@ -14,15 +14,14 @@ public class PackageChangeReceiver extends BroadcastReceiver {
         String packageName = data.getSchemeSpecificPart();
 
         if (MdmControl.WHATSAPP.equals(packageName)) {
-            // Target action completed (install, uninstall, or update)
+            // WhatsApp का एक्शन पूरा हुआ -> Play Store हाइड करें
             PlayStoreGuardService.isSessionActive = false;
-            MdmControl.hideApp(MdmControl.PLAY_STORE);
-            MdmControl.disableAccessibility();
+            MdmControl.hideApp(context, MdmControl.PLAY_STORE);
         } else if (!MdmControl.PLAY_STORE.equals(packageName)) {
-            // Unauthorized package detected
-            MdmControl.hideApp(packageName);
-            MdmControl.hideApp(MdmControl.PLAY_STORE);
-            MdmControl.disableAccessibility();
+            // कोई अनाधिकृत ऐप इंस्टॉल हुई -> ऐप और Play Store दोनों हाइड करें
+            MdmControl.hideApp(context, packageName);
+            MdmControl.hideApp(context, MdmControl.PLAY_STORE);
+            PlayStoreGuardService.isSessionActive = false;
         }
     }
 }
