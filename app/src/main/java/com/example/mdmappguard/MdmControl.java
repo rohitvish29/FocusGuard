@@ -2,45 +2,24 @@ package com.example.mdmappguard;
 
 import android.app.admin.DevicePolicyManager;
 import android.content.Context;
-import java.util.List;
+import android.util.Log;
 
 public class MdmControl {
-
-    public static final String PLAY_STORE = "com.android.vending";
     public static final String WHATSAPP = "com.whatsapp";
+    public static final String PLAY_STORE = "com.android.vending";
 
-    // चेक करें कि ऐप के पास Package Access Delegation है या नहीं
-    public static boolean hasDelegation(Context context) {
+    // ऐप को Hide या Unhide करने का फंक्शन
+    public static boolean setAppHidden(Context context, String packageName, boolean hide) {
         DevicePolicyManager dpm = (DevicePolicyManager) context.getSystemService(Context.DEVICE_POLICY_SERVICE);
-        if (dpm != null) {
-            List<String> scopes = dpm.getDelegatedScopes(null, context.getPackageName());
-            return scopes.contains(DevicePolicyManager.DELEGATION_PACKAGE_ACCESS);
-        }
-        return false;
-    }
-
-    // App को Hide करना (Delegated API)
-    public static void hideApp(Context context, String packageName) {
         try {
-            DevicePolicyManager dpm = (DevicePolicyManager) context.getSystemService(Context.DEVICE_POLICY_SERVICE);
-            if (dpm != null) {
-                // Delegated ऐप होने की वजह से admin component 'null' पास होता है
-                dpm.setApplicationHidden(null, packageName, true);
-            }
+            // null पास करने का मतलब है कि हम Delegated Scope का इस्तेमाल कर रहे हैं
+            boolean result = dpm.setApplicationHidden(null, packageName, hide);
+            Log.d("MdmControl", "App Hidden state changed: " + result);
+            return true; 
         } catch (SecurityException e) {
-            e.printStackTrace();
-        }
-    }
-
-    // Play Store को Unhide करना (Delegated API)
-    public static void unhidePlayStore(Context context) {
-        try {
-            DevicePolicyManager dpm = (DevicePolicyManager) context.getSystemService(Context.DEVICE_POLICY_SERVICE);
-            if (dpm != null) {
-                dpm.setApplicationHidden(null, PLAY_STORE, false);
-            }
-        } catch (SecurityException e) {
-            e.printStackTrace();
+            // अगर MDM ने डेलिगेशन नहीं दिया है, तो यह एरर आएगा
+            Log.e("MdmControl", "Delegation Missing: " + e.getMessage());
+            return false;
         }
     }
 }
